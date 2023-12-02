@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+
+jumpto() { local t1=$1; local t2=$(sed -n "/$t1:/{:a;n;p;ba};" $0 | grep -v ':$'); sleep .1; eval "$t2"; exit; }
+#= menu ======================================================================================================================
+mma:
+  clear
+  echo '------ EJR SYNC UTILITY ------'
+  echo '1) Gregorian TO Ethiopian'
+  echo '2) Ethiopian TO Gregorian'
+  echo '\) Exit'; read -rsn1 opkey; opkey=${opkey,,}; clear; case $opkey in
+#= cases =====================================================================================================================
+
+1) #== Convert: Gregorian To Ethiopian ===========================================
+  # Prompt the user for a Gregorian date input
+    read -p "Enter a Gregorian date (YYYYMMDD): " gregorian_date
+  # Check if the input date is provided
+    if [ -z "$gregorian_date" ]; then echo "No date provided. Exiting."; exit 1; fi
+  # Convert Gregorian year, month, and day
+    gregorian_year="${gregorian_date:0:4}"
+    gregorian_month="${gregorian_date:4:2}"
+    gregorian_day="${gregorian_date:6:2}"
+  # Remove leading zeros from year, month, and day
+    gregorian_year=${gregorian_year#0}
+    gregorian_month=${gregorian_month#0}
+    gregorian_day=${gregorian_day#0}
+  # Check if the date is valid
+    if [[ ! $gregorian_date =~ ^[0-9]{8}$ ]]; then echo "Invalid date format. Please use YYYYMMDD."; exit 1; fi
+  # Calculate Ethiopian year, month, and day
+    ethiopian_year=$((gregorian_year - 8))
+    ethiopian_month=$((gregorian_month + 4))
+    ethiopian_day="$gregorian_day"
+  # Adjust Ethiopian month and year
+    if [ "$ethiopian_month" -gt 12 ]; then ethiopian_month=$((ethiopian_month - 12)); ethiopian_year=$((ethiopian_year + 1)); fi
+  # Print the Ethiopian date
+    echo "Ethiopian Date: ${ethiopian_year}$(printf "%02d" "$ethiopian_month")$(printf "%02d" "$ethiopian_day")"
+;;
+2) #== Convert: Ethiopian To Gregorian ===========================================
+  # Prompt the user for an Ethiopian date input
+    read -p "Enter an Ethiopian date (YYYYMMDD): " ethiopian_date
+  # Check if the input date is provided
+    if [ -z "$ethiopian_date" ]; then echo "No date provided. Exiting."; exit 1; fi
+  # Convert Ethiopian year, month, and day
+    ethiopian_year="${ethiopian_date:0:4}"
+    ethiopian_month="${ethiopian_date:4:2}"
+    ethiopian_day="${ethiopian_date:6:2}"
+  # Remove leading zeros from year, month, and day
+    ethiopian_year=${ethiopian_year#0}
+    ethiopian_month=${ethiopian_month#0}
+    ethiopian_day=${ethiopian_day#0}
+  # Check if the date is valid
+    if [[ ! $ethiopian_date =~ ^[0-9]{8}$ ]]; then echo "Invalid date format. Please use YYYYMMDD."; exit 1; fi
+  # Calculate Gregorian year, month, and day
+    gregorian_year=$((ethiopian_year + 8))
+    gregorian_month=$((ethiopian_month - 4))
+    gregorian_day="$ethiopian_day"
+  # Adjust Gregorian month and year
+    if [ "$gregorian_month" -le 0 ]; then gregorian_month=$((gregorian_month + 12)); gregorian_year=$((gregorian_year - 1)); fi
+  # Print the Gregorian date
+    echo "Gregorian Date: ${gregorian_year}$(printf "%02d" "$gregorian_month")$(printf "%02d" "$gregorian_day")"
+;;
+### END STUFF #########################
+'\') exit 0;; *) jumpto mma;;
+esac
+###
+#
