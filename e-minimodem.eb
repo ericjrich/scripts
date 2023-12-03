@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+#20231203_17:43_est--EJR
+#mini-modem-interfaces
+#== LOAD FIRST ============================================
+baudrate='12000'
+jumpto() { local t1=$1; local t2=$(sed -n "/$t1:/{:a;n;p;ba};" $0 | grep -v ':$'); sleep .1; eval "$t2"; exit; }
+#== MAIN MENU =============================================
+mma:
+  clear
+  echo '== Mini Modem =='
+  echo '1 - Open Send/Receive Windows'
+  echo '2 - Message Via User Input To Audio File  (~/Desktop/mm.wav)'
+  echo '3 - Message Via Document To Audio File    (~/Desktop/mm.wav)'
+  echo '4 - Receive From Audio File               (~/Desktop/mm.txt)'
+  echo "0 - Change Baud Rate                      (Currently Set To: $baudrate)"
+  echo '\ - exit'
+  read -rsn1 inkey; echo; inkey=${inkey,,}; clear; case "$inkey" in
+    '1') jumpto mma1  ;;
+    '2') jumpto mma2  ;;
+    '3') jumpto mma3  ;;
+    '4') jumpto mma4  ;;
+    '0') jumpto mma0  ;;
+    '\') exit 0       ;;
+      *) jumpto mma   ;;
+  esac
+jumpto mma
+# == SUB MENU =============================================
+mma1:
+  sleep 0.2
+  x-terminal-emulator -e "bash -c 'echo RECEIVER; minimodem --rx "$baudrate" -q -c 3'" >> /dev/null 2>&1 & disown
+  sleep 0.2
+  xdotool getactivewindow windowsize %@ 40% 40%
+  sleep 0.1
+  xdotool getactivewindow windowmove %@ 10% 0
+  sleep 0.2
+  x-terminal-emulator -e "bash -c 'echo TRANSMITTER; minimodem --tx "$baudrate"'" >> /dev/null 2>&1 & disown
+  sleep 0.2
+  xdotool getactivewindow windowsize %@ 40% 40%
+  sleep 0.1
+  xdotool getactivewindow windowmove %@ 10% 50%
+  sleep 0.2
+jumpto mma
+
+# == SUB MENU =============================================
+mma2:
+  clear
+  echo 'Enter Text To Send To Wav File:'
+  read text_to_send
+  echo "$text_to_send" | minimodem --tx "$baudrate" -q -c 3 -f "$HOME/Desktop/mm.wav"
+  echo "Text sent to ~/Desktop/mm.wav"
+  sleep 2
+jumpto mma
+
+# == SUB MENU =============================================
+mma3:
+  clear
+  echo 'Choose a Document To Send To A Wav File:'
+  doc_to_send=$(zenity --file-selection --title='Select a Document To Send')
+  cat "$doc_to_send" | minimodem --tx "$baudrate" -q -c 3 -f "$HOME/Desktop/mm.wav"
+  echo "Text sent to ~/Desktop/mm.wav"
+  sleep 2
+jumpto mma
+
+# == SUB MENU =============================================
+mma4:
+  clear
+  echo 'Choose a WAV file to receive from:'
+  file_path=$(zenity --file-selection --file-filter='WAV files (wav) | *.wav' --title='Select a WAV File')
+  if [ -n "$file_path" ]; then
+    minimodem --rx "$baudrate" -q -c 3 -f "$file_path" > "$HOME/Desktop/mm.txt"
+    echo "Text received and saved to ~/Desktop/mm.txt"
+  else
+    echo "No file selected."
+  fi
+  sleep 2
+jumpto mma
+
+# == SUB MENU =============================================
+mma0:
+  clear
+  echo -e "Current Baud Rate= $baudrate\n Enter A New Baud Rate ( 0 to 12,000)"
+  read baudrate
+jumpto mma
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
