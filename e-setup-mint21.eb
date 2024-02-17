@@ -1,257 +1,211 @@
 #!/usr/bin/env bash
+# 20240212_2240_est_EJR
 #SETUP: Linux Mint 21.3
-#20240117_1418_est_EJR
+
+### Do First ###
 shopt -s dotglob
-## READING VAR AND FUNC #######################################################
-  V_ListFpkIn=(com.github.tchx84.Flatseal)
-  V_ListAptIn=(arp-scan barrier httrack links2 minimodem rclone whois yt-dlp base58 basez bless dc gnupg hashalot oathtool openssl qrencode ruby-ascii85 tesseract-ocr zbar-tools audacity espeak exiftool festival ffmpeg flite gifsicle imagemagick img2pdf jp2a jpegoptim jq mint-meta-codecs pinta pngcrush qmmp shotcut simplescreenrecorder sox speech-dispatcher vainfo webcamoid webp bleachbit boxes caca-utils cowsay dialog faketime fastboot fdupes feh figlet python3-pip scrcpy tree whiptail xautomation xbindkeys xclip xdotool yad zenity ghostwriter pandoc retext xournalpp)
-  V_ListAptUn=(libreoffice* thunderbird*)
-  #
-  F_jumpto()            { local t1=$1; local t2=$(sed -n "/$t1:/{:a;n;p;ba};" $0 | grep -v ':$'); sleep .1; eval "$t2"; exit; }
-  F_sanity()            { local san; read -p 'Are You Sure? (y/n)' san; san=${san,,}; if [ "$san" != "y" ]; then return 1; else return 0; fi; }
-  F_crap()              { read -n 1 -p '*ANY-KEY*'; echo; }
-  F_zzdd()              { local t1="*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*"; echo -e "$t1\n$t1\n$1\n$t1\n$t1\n"; sleep .5; }
-  F_zzff()              { F_zzdd '==== FINISHED ===='; }
-  #
-  F_AptUpdate()         { F_zzdd '==== UPDATING APT ===='; sudo apt update -y; }
-  F_Uninstalls()        { F_zzdd '==== UNINSTALLS ===='; for i in ${V_ListAptUn[@]}; do F_zzdd "Uninstalling (via AptUn list)  $i"; sudo apt purge --auto-remove -y "$i"; done; }
-  F_AptUpgrade()        { F_zzdd '==== UPGRADE ===='; sudo apt update -y; sudo apt upgrade -y; }
-  F_InListAPT()         { F_zzdd '==== INSTALLS ===='; for i in ${V_ListAptIn[@]}; do F_zzdd "Installing (via AptIn list)  $i"; sudo apt install -y "$i"; done; }
-  F_InChromeDeb()       { F_zzdd '==== CHROME ===='; zname='Chrome'; ztf="/tmp/this.deb"; zurl='https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb'; rm $ztf; wget -O "$ztf" "$zurl"; sudo gdebi "$ztf" --n; rm $ztf; }
-  F_InCubicPPA()        { F_zzdd '==== CUBIC ===='; zname='cubic'; zppa='ppa:cubic-wizard/release'; sudo apt-add-repository -y "$zppa"; sudo apt update -y; sudo apt install -y "$zname"; }
-  F_InVidcutterPPA()    { F_zzdd '==== VIDCUTTER ===='; zname='vidcutter'; zppa='ppa:ozmartian/apps'; sudo apt-add-repository -y "$zppa"; sudo apt update -y; sudo apt install -y "$zname"; }
-  F_InListFPK()         { F_zzdd '==== FLATPAKS ===='; for i in ${V_ListFpkIn[@]}; do F_zzdd "Installing(via FPK list)  $i"; sudo flatpak install -y flathub "$i"; done; }
-  F_FixPDF()            { F_zzdd '==== FIXING PDF ISSUE ===='; sudo sed -i '/disable ghostscript format types/,+6d' /etc/ImageMagick-6/policy.xml; }
-  F_BlackBg()           { F_zzdd '==== SET BLACK WALLPAPER ===='; local t1="/usr/share/backgrounds/linuxmint/sele_ring.jpg"; sudo convert "$t1" -fill black -colorize 100% "$t1"; }
-  F_AptUpClean()        { F_zzdd '==== UPGRADE & CLEAN===='; sudo apt update -y; sudo apt upgrade -y; sudo apt autoremove -y; sudo apt autoclean -y; }
-  #
-  F_ConfPython()        { F_zzdd '==== PYTHON STUFF ===='; pip3 install --upgrade yt-dlp; pip3 install mnemonic ecdsa pycryptodome pyperclip qrcode base58; }
-  F_ConfDconf()         { F_zzdd '==== SYSTEM SETTINGS: DCONF ===='
-                        dconf write /org/cinnamon/panels-enabled "['1:0:bottom']"
-                        dconf write /org/cinnamon/panels-height "['1:27']"
-                        dconf write /org/cinnamon/panel-zone-icon-sizes '[{"left":0,"center":0,"right":0,"panelId":1}]'
-                        dconf write /org/cinnamon/enabled-applets \
-                        "[
-                            'panel1:left:0:menu@cinnamon.org',
-                            'panel1:left:1:panel-launchers@cinnamon.org',
-                            'panel1:left:2:window-list@cinnamon.org',
-                            'panel1:right:0:workspace-switcher@cinnamon.org',
-                            'panel1:right:1:systray@cinnamon.org',
-                            'panel1:right:2:xapp-status@cinnamon.org',
-                            'panel1:right:3:keyboard@cinnamon.org',
-                            'panel1:right:4:notifications@cinnamon.org',
-                            'panel1:right:5:printers@cinnamon.org',
-                            'panel1:right:6:removable-drives@cinnamon.org',
-                            'panel1:right:7:user@cinnamon.org',
-                            'panel1:right:8:network@cinnamon.org',
-                            'panel1:right:9:sound@cinnamon.org',
-                            'panel1:right:10:power@cinnamon.org',
-                            'panel1:right:11:calendar@cinnamon.org'
-                        ]"
-  } #............................................................................
-  F_ConfFiles()         { F_zzdd '========== CONFIG FILES ==========='; sleep 2
-                        echo '...........VARIABLES PLAIN...............'
-                            local tswitcherSF="$HOME/a-me/config/switcher.json"
-                            local tlauncherSF="$HOME/a-me/config/launchers.json"
-                            local tswitcherDD="$HOME/.config/cinnamon/spices/workspace-switcher@cinnamon.org"
-                            local tlauncherDD="$HOME/.config/cinnamon/spices/panel-launchers@cinnamon.org"
-                            local tbleachbtP1="/root/.config/bleachbit"
-                            local tbleachbtP2="$HOME/.config/bleachbit"
-                            local tbleachbtS1="$HOME/a-me/config/root-bleachbit.ini"
-                            local tbleachbtS2="$HOME/a-me/config/bleachbit.ini"
-                            local tbleachbtD1="/root/.config/bleachbit/bleachbit.ini"
-                            local tbleachbtD2="$HOME/.config/bleachbit/bleachbit.ini"
+if ! command -v whiptail &> /dev/null; then clear; echo -e "whiptail is not installed. Please run the following command to install it:\n sudo apt-get install -y whiptail"; exit 1; fi
 
-                        echo '......VARIABLES COMPUTED & CHECKED ......'
-                            local tswitcherDF=$(find "$tswitcherDD" -type f -name '*.json'); wait $!
-                              if [ -z "$tswitcherDF" ]; then echo 'NO FILE'; return 1; elif [ $(echo "$tswitcherDF" | wc -l) -gt 1 ]; then echo '2+ FILES'; return 1; fi
-                            local tlauncherDF=$(find "$tlauncherDD" -type f -name '*.json'); wait $!
-                              if [ -z "$tlauncherDF" ]; then echo 'NO FILE'; return 1; elif [ $(echo "$tlauncherDF" | wc -l) -gt 1 ]; then echo '2+ FILES'; return 1; fi
-                      ###
-                        echo '#### WORKSPACE SWITCHER ####'; cp "$tswitcherSF" "$tswitcherDF" && echo '!! Panel Switcher Updated !!'
-                        echo '#### PANEL LAUNCHERS ####'; cp "$tlauncherSF" "$tlauncherDF" && echo '!! Panel Launcher Updated !!'
-                        echo '#### BLEACHBIT ####'; { sudo mkdir -p "$tbleachbtP1"; mkdir -p "$tbleachbtP2"; sudo cp "$tbleachbtS1" "$tbleachbtD1"; cp "$tbleachbtS2" "$tbleachbtD2"; } && echo '!! BleachBit UpDated !!'
-  } #............................................................................
-  F_ConfNemoBooks()     { F_zzdd 'LOADING BOOKMARKS FOR NEMO'; local t1="$HOME/.config/gtk-3.0/bookmarks"; local t2="$HOME/a-me/config/bookmark.txt"; sed "s/\$USER/$(whoami)/g" "$t2" > "$t1"
-  } #............................................................................
+#_Vars & Arrays______________________________________________________________________________________________________________________________________
+V_AptUns=(libreoffice* thunderbird*)
+V_AptIns=(apktool wkhtmltopdf audacity barrier qmmp shotcut simplescreenrecorder arp-scan base58 basez bleachbit bless boxes caca-utils cowsay dc dialog espeak exiftool faketime fastboot fdupes feh festival ffmpeg figlet flite ghostwriter gifsicle gnupg hashalot httrack imagemagick img2pdf jp2a jpegoptim jq links2 minimodem mint-meta-codecs oathtool openssl pandoc pinta pngcrush python3-pip qrencode rclone retext ruby-ascii85 scrcpy sox speech-dispatcher tesseract-ocr tree vainfo webcamoid webp whiptail whois xautomation xbindkeys xclip xdotool xournalpp yad yt-dlp zbar-tools zenity)
+declare -A V_AptPPAs; V_AptPPAs["cubic"]="cubic-wizard/release"; V_AptPPAs["vidcutter"]="ozmartian/apps"; declare -A V_AptPPAsChosen
+V_Debs=("$(echo /etc/skel/a-me/z-share/app-deb/sparrow*.deb)")
+V_DebsDL=("https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb")
+V_Fpaks=("com.github.tchx84.Flatseal")
+V_DivBar="*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*"
+V_TmpFile='/tmp/package.deb'
+declare -A V_Gset_Array; V_Gset_Array["org.cinnamon.desktop.session idle-delay"]="uint32 0"; V_Gset_Array["com.linuxmint.mintmenu.plugins.recent recent-apps-list"]="@as []"; V_Gset_Array["io.github.celluloid-player.Celluloid use-skip-buttons-for-playlist"]="true"; V_Gset_Array["org.cinnamon desktop-effects-workspace"]="false"; V_Gset_Array["org.cinnamon.desktop.interface clock-use-24h"]="false"; V_Gset_Array["org.cinnamon.desktop.interface cursor-theme"]="Bibata-Modern-Classic"; V_Gset_Array["org.cinnamon.desktop.interface gtk-theme"]="Mint-Y-Dark-Aqua"; V_Gset_Array["org.cinnamon.desktop.interface icon-theme"]="Mint-Y-Sand"; V_Gset_Array["org.cinnamon.desktop.keybindings.media-keys area-screenshot-clip"]="['<Primary>Print']"; V_Gset_Array["org.cinnamon.desktop.keybindings.media-keys area-screenshot"]="['Print']"; V_Gset_Array["org.cinnamon.desktop.keybindings.media-keys screensaver"]="['<Primary><Alt><Super>Escape', 'XF86ScreenSaver']"; V_Gset_Array["org.cinnamon.desktop.keybindings.media-keys screenshot"]="@as []"; V_Gset_Array["org.cinnamon.desktop.keybindings.media-keys screenshot-clip"]="@as []"; V_Gset_Array["org.cinnamon.desktop.keybindings.media-keys window-screenshot"]="@as []"; V_Gset_Array["org.cinnamon.desktop.keybindings.media-keys window-screenshot-clip"]="@as []"; V_Gset_Array["org.cinnamon.desktop.keybindings.wm move-to-monitor-left"]="['<Shift><Super>Left']"; V_Gset_Array["org.cinnamon.desktop.keybindings.wm move-to-monitor-right"]="['<Shift><Super>Right']"; V_Gset_Array["org.cinnamon.desktop.keybindings.wm move-to-workspace-left"]="['<Shift><Alt>Left']"; V_Gset_Array["org.cinnamon.desktop.keybindings.wm move-to-workspace-right"]="['<Shift><Alt>Right']"; V_Gset_Array["org.cinnamon.desktop.keybindings.wm toggle-recording"]="@as []"; V_Gset_Array["org.cinnamon.desktop.media-handling automount-open"]="false"; V_Gset_Array["org.cinnamon.desktop.media-handling automount"]="true"; V_Gset_Array["org.cinnamon.desktop.media-handling autorun-never"]="true"; V_Gset_Array["org.cinnamon.desktop.peripherals.touchpad send-events"]="disabled-on-external-mouse"; V_Gset_Array["org.cinnamon.desktop.privacy remember-recent-files"]="false"; V_Gset_Array["org.cinnamon.desktop.privacy remember-recent-files"]="false"; V_Gset_Array["org.cinnamon.desktop.screensaver lock-enabled"]="false"; V_Gset_Array["org.cinnamon.desktop.wm.preferences action-scroll-titlebar"]="opacity"; V_Gset_Array["org.cinnamon favorite-apps"]="['mintinstall.desktop', 'cinnamon-settings.desktop', 'cubic.desktop', 'bleachbit-root.desktop', 'virtualbox.desktop']"; V_Gset_Array["org.cinnamon.muffin edge-tiling"]="false"; V_Gset_Array["org.cinnamon.settings-daemon.plugins.power button-power"]="blank"; V_Gset_Array["org.cinnamon.settings-daemon.plugins.power critical-battery-action"]="shutdown"; V_Gset_Array["org.cinnamon.settings-daemon.plugins.power idle-dim-ac"]="false"; V_Gset_Array["org.cinnamon.settings-daemon.plugins.power idle-dim-battery"]="false"; V_Gset_Array["org.cinnamon.settings-daemon.plugins.power lid-close-ac-action"]="nothing"; V_Gset_Array["org.cinnamon.settings-daemon.plugins.power lid-close-battery-action"]="nothing"; V_Gset_Array["org.cinnamon.settings-daemon.plugins.power lock-on-suspend"]="false"; V_Gset_Array["org.cinnamon.settings-daemon.plugins.power sleep-display-ac"]="1800"; V_Gset_Array["org.cinnamon.settings-daemon.plugins.power sleep-display-battery"]="300"; V_Gset_Array["org.cinnamon.settings-daemon.plugins.power sleep-inactive-ac-timeout"]="0"; V_Gset_Array["org.cinnamon.settings-daemon.plugins.power sleep-inactive-battery-timeout"]="0"; V_Gset_Array["org.cinnamon.theme name"]="Mint-Y-Dark-Aqua"; V_Gset_Array["org.cinnamon workspace-osd-visible"]="false"; V_Gset_Array["org.gnome.desktop.interface clock-format"]="12h"; V_Gset_Array["org.gnome.desktop.privacy remember-recent-files"]="false"; V_Gset_Array["org.gtk.Settings.FileChooser show-hidden"]="true"; V_Gset_Array["org.nemo.desktop computer-icon-visible"]="false"; V_Gset_Array["org.nemo.desktop home-icon-visible"]="false"; V_Gset_Array["org.nemo.desktop network-icon-visible"]="false"; V_Gset_Array["org.nemo.desktop trash-icon-visible"]="false"; V_Gset_Array["org.nemo.desktop volumes-visible"]="false"; V_Gset_Array["org.nemo.preferences detect-content"]="false"; V_Gset_Array["org.nemo.preferences enable-delete"]="true"; V_Gset_Array["org.nemo.preferences show-hidden-files"]="true"; V_Gset_Array["org.x.apps.portal color-scheme"]="prefer-dark"; V_Gset_Array["org.x.editor.plugins active-plugins"]="['time', 'sort', 'filebrowser', 'textsize', 'trailsave', 'modelines', 'docinfo', 'open-uri-context-menu', 'spell', 'joinlines']"; V_Gset_Array["org.x.editor.plugins.time custom-format"]='#%Y%m%d_%H%M_est_EJR'; V_Gset_Array["org.x.editor.plugins.time prompt-type"]="prompt-custom-format"; V_Gset_Array["org.x.editor.preferences.editor draw-whitespace-trailing"]="true"; V_Gset_Array["org.x.editor.preferences.editor draw-whitespace"]="true"; V_Gset_Array["org.x.editor.preferences.editor ensure-trailing-newline"]="false"; V_Gset_Array["org.x.editor.preferences.editor insert-spaces"]="true"; V_Gset_Array["org.x.editor.preferences.editor scheme"]="cobalt"; V_Gset_Array["org.x.editor.preferences.editor tabs-size"]="2"; V_Gset_Array["org.x.editor.preferences.editor wrap-mode"]="none"
+V_Menu_1_Ops=(F_Update F_UnApt F_Upgrade F_InApt F_InAptPPA F_InDebDL F_InDeb F_InFpak F_Clean F_ModFixPDF F_ModBlackBg)
+V_Menu_2_Ops=(F_ConfPython F_ConfDconf F_ConfFiles F_ConfNemoBooks F_ConfGsettings F_ConfCinnReset F_ConfUnlock F_ConfDisplayRez)
+V_Menu_Ops=("${V_Menu_1_Ops[@]}" "${V_Menu_2_Ops[@]}")
 
-  F_ConfGsettings()     { F_zzff '=== GSETTINGS ==='
-                        local t1
-                        local t2
-                        local LGS
-                        local LGG
-                        local LGR
-                        local LD='>/dev/null'
-                        for t1 in "${!V_Gset_Array[@]}"; do
-                          t2="${V_Gset_Array[$t1]}"
-                          LGS="gsettings set $t1 \"$t2\" $LD"
-                          LGG="gsettings get $t1"
-                          LGR="gsettings range $t1"
-                          echo -e "\e[36m\e[1m===========================================================\e[0m"
-                          echo -e "\e[4m# Command To Run:\e[0m\e[3m"
-                          echo "$LGS"
-                          echo -e "\e[0m\e[4m# Current Settings:\e[0m\e[3m"
-                          eval "$LGG"
-                          echo -e "\e[0m\e[4m# Possible Settings:\e[0m\e[3m"
-                          eval "$LGR"
-                          echo -e "\e[0m...........................................................\e[33m\e[1m"
-                          eval "$LGS"
-                          echo -e "\e[0m"
-                          sleep .5
-                        done
-                        echo -e "\e[5m\e[1m**** HIT ENTER ****\e[0m"; read junk
-  } #............................................................................
-#....OPTIONAL.................................................................................................................
-  F_ConfCinnReset()     { cinnamon --replace > /dev/null 2>&1 & disown; sleep 4; }
-  F_ConfUnlock()        { F_zzdd '==== PERSONAL FILES UNLOCK ===='; cd ~/a-me/; 7z x z-personal.7z; rm z-personal.7z; cd -; }
-  F_ConfDisplayRez()     { F_zzdd 'Resolution For Desktops'
-                        local tkey
-                        echo -n 'Do You Need 1366x768 Overrides? '; read -rsn1 tkey; echo; tkey=${tkey,,}; [ ! "$tkey" = "y" ] && return
-                        echo '---- COPYING FILES FOR RESOLUTION AUTOSTART ----'
-                          cp "$HOME/a-me/config/resolution.desktop" "$HOME/.config/autostart/resolution.desktop"
-                        echo '---- FIXING RESOLUTION NOW ----'
-                          xrandr --newmode "1368x768_60.00" 85.86 1368 1440 1584 1800 768 769 772 795 -HSync +Vsync
-                          xrandr --addmode HDMI-1 "1368x768_60.00"
-                          xrandr --addmode HDMI-2 "1368x768_60.00"
-                          xrandr --output HDMI-1 --mode "1368x768_60.00" --pos 0x0
-                          xrandr --output HDMI-2 --mode "1368x768_60.00" --pos 1368x0
-  } #..........................................................................................................................
+#_Functions__________________________________________________________________________________________________________________________________________
+F_jumpto()          { local t1=$1; local t2=$(sed -n "/$t1:/{:a;n;p;ba};" $0 | grep -v ':$'); sleep .1; eval "$t2"; exit; }
+F_zzdd()            { echo -e "\n$DivBar\n$1\n$DivBar\n"; sleep .5; }
+F_zzff()            { F_zzdd '====== FINISHED ======================='; }
+F_sanity()          { local san; read -p 'Are You Sure? (y/n)' san; san=${san,,}; if [ "$san" != "y" ]; then return 1; else return 0; fi; }
+F_crap()            { read -n 1 -p '*ANY-KEY*'; echo; }
+F_crab()            { read -p '*Hit Enter*'; echo; }
+F_Update()          { F_zzdd '====== UPDATE ========================='; sudo apt update -y; }
+F_Upgrade()         { F_zzdd '====== UPGRADE ========================'; sudo apt update -y; sudo apt upgrade -y; }
+F_Clean()           { F_zzdd '====== CLEAN =========================='; sudo apt update -y; sudo apt upgrade -y; sudo apt autoremove -y; sudo apt autoclean -y; }
+F_UnApt()           { local choices=(); for i in "${V_AptUns[@]}"; do choices+=("$i" "" on); done
+  local selected_items=$(whiptail --title "Choose Apps To UnInstall" --separate-output --checklist "Select the Apps to UnInstall" 0 0 0 "${choices[@]}" 3>&1 1>&2 2>&3)
+  if [ $? -eq 0 ]; then for i in $selected_items; do
+    echo "Removing: $i"
+    #-- A C T I O N -----
+    sudo apt purge --auto-remove -y "$i"
+  done; else echo "No items selected."; fi; }
+F_InApt()           { local choices=(); for i in "${V_AptIns[@]}"; do choices+=("$i" "" on); done
+  local selected_items=$(whiptail --title "Choose Apps To Install" --separate-output --checklist "Select the Apps to Install" 0 0 0 "${choices[@]}" 3>&1 1>&2 2>&3)
+  if [ $? -eq 0 ]; then for i in $selected_items; do
+    echo "Installing: $i"
+    #-- A C T I O N -----
+    sudo apt install -y "$i"
+  done; else echo "No items selected."; fi; }
+F_InDebDL()         { local choices=(); for i in "${V_DebsDL[@]}"; do choices+=("$i" "" on); done
+  local selected_items=$(whiptail --title "Choose Debs To DL And Install" --separate-output --checklist "Select Debs To DL And Install" 0 0 0 "${choices[@]}" 3>&1 1>&2 2>&3)
+  if [ $? -eq 0 ]; then for i in $selected_items; do
+    echo "Downloading & Installing: $i"
+    #-- A C T I O N -----
+    rm "$V_TmpFile"; wget -O "$V_TmpFile" "$i"; sudo gdebi "$V_TmpFile" --n; rm "$V_TmpFile"
+  done; else echo "No items selected."; fi; }
+F_InDeb()         { local choices=(); for i in "${V_Debs[@]}"; do choices+=("$i" "" off); done
+  local selected_items=$(whiptail --title "Choose Local Debs To Install" --separate-output --checklist "Select Debs To Install" 0 0 0 "${choices[@]}" 3>&1 1>&2 2>&3)
+  if [ $? -eq 0 ]; then for i in $selected_items; do
+    echo "Installing: $i"
+    #-- A C T I O N -----
+    sudo gdebi "$i" --n
+  done; else echo "No items selected."; fi; }
+F_InFpak()          { local choices=(); for i in "${V_Fpaks[@]}"; do choices+=("$i" "" on); done
+  local selected_items=$(whiptail --title "Choose FlatPaks To Install" --separate-output --checklist "Select FlatPaks To Install" 0 0 0 "${choices[@]}" 3>&1 1>&2 2>&3)
+  if [ $? -eq 0 ]; then for i in $selected_items; do
+    echo "Installing Flatpak: $i"
+    #-- A C T I O N -----
+    flatpak install -y flathub "$i"
+  done; else echo "No items selected."; fi; }
+F_InAptPPA()        { local choices=(); for i in "${!V_AptPPAs[@]}"; do choices+=("$i" "" on); done
+  local selected_items=$(whiptail --title "Choose Apps to Install" --separate-output --checklist "Select the apps you want to install" 0 0 0 "${choices[@]}" 3>&1 1>&2 2>&3)
+  if [ $? -eq 0 ]; then for i in $selected_items; do
+    V_AptPPAsChosen["$i"]="${V_AptPPAs["$i"]}"
+  done; else echo "No items selected."; fi
+  for i in "${!V_AptPPAsChosen[@]}"; do
+    echo -e "Adding PPA:\t${V_AptPPAsChosen[$i]}\n To Install:\t$i"
+    #-- A C T I O N -----
+    sudo add-apt-repository -y "ppa:${V_AptPPAsChosen[$i]}"; sudo apt update; sudo apt install -y "$i"
+  done; }
+F_ModFixPDF()       { F_zzdd '====== FIXING PDF ISSUE ==============='; sudo sed -i '/disable ghostscript format types/,+6d' /etc/ImageMagick-6/policy.xml; }
+F_ModBlackBg()      { F_zzdd '====== SET BLACK WALLPAPER ============'; local t1="/usr/share/backgrounds/linuxmint/sele_ring.jpg"; sudo convert "$t1" -fill black -colorize 100% "$t1"; }
+############    #####################    #################    #############    #################   ################   #############  ###############
+F_pipzin() {
+  local pipkey
+  local V_pipz=(yt-dlp mnemonic ecdsa pycryptodome pyperclip qrcode base58 getch)
+  local V_dl_dir="/media/e/xusb/user/a-me/z-share/pipz/"
+  local V_in_dir="$HOME/a-me/z-share/pipz/"
+  clear
+  echo -e "===== Pip Installer ======\n 1 - Get The Pipz From Online\n 2 - Install The Pipz Offline"
+  read -rsn1 pipkey; echo; pipkey=${pipkey,,}; clear; case "$pipkey" in
+  '1') for i in "${V_pipz[@]}"; do pip3 download "$i" -d "$V_dl_dir"; done                      ;;
+  '2') for i in "${V_pipz[@]}"; do pip3 install --no-index --find-links="$V_in_dir" "$i"; done  ;;
+  '\') return 0 ;;
+    *) return 1 ;;
+  esac; }
 
-  # Gsettings
-    declare -A V_Gset_Array
-  ##### data start #######
-    V_Gset_Array["org.cinnamon.desktop.session idle-delay"]="uint32 0"
-    V_Gset_Array["com.linuxmint.mintmenu.plugins.recent recent-apps-list"]="@as []"
-    V_Gset_Array["io.github.celluloid-player.Celluloid use-skip-buttons-for-playlist"]="true"
-    V_Gset_Array["org.cinnamon desktop-effects-workspace"]="false"
-    V_Gset_Array["org.cinnamon.desktop.interface clock-use-24h"]="false"
-    V_Gset_Array["org.cinnamon.desktop.interface cursor-theme"]="Bibata-Modern-Classic"
-    V_Gset_Array["org.cinnamon.desktop.interface gtk-theme"]="Mint-Y-Dark-Aqua"
-    V_Gset_Array["org.cinnamon.desktop.interface icon-theme"]="Mint-Y-Sand"
-    V_Gset_Array["org.cinnamon.desktop.keybindings.media-keys area-screenshot-clip"]="['<Primary>Print']"
-    V_Gset_Array["org.cinnamon.desktop.keybindings.media-keys area-screenshot"]="['Print']"
-    V_Gset_Array["org.cinnamon.desktop.keybindings.media-keys screensaver"]="['<Primary><Alt><Super>Escape', 'XF86ScreenSaver']"
-    V_Gset_Array["org.cinnamon.desktop.keybindings.media-keys screenshot"]="@as []"
-    V_Gset_Array["org.cinnamon.desktop.keybindings.media-keys screenshot-clip"]="@as []"
-    V_Gset_Array["org.cinnamon.desktop.keybindings.media-keys window-screenshot"]="@as []"
-    V_Gset_Array["org.cinnamon.desktop.keybindings.media-keys window-screenshot-clip"]="@as []"
-    V_Gset_Array["org.cinnamon.desktop.keybindings.wm move-to-monitor-left"]="['<Shift><Super>Left']"
-    V_Gset_Array["org.cinnamon.desktop.keybindings.wm move-to-monitor-right"]="['<Shift><Super>Right']"
-    V_Gset_Array["org.cinnamon.desktop.keybindings.wm move-to-workspace-left"]="['<Shift><Alt>Left']"
-    V_Gset_Array["org.cinnamon.desktop.keybindings.wm move-to-workspace-right"]="['<Shift><Alt>Right']"
-    V_Gset_Array["org.cinnamon.desktop.keybindings.wm toggle-recording"]="@as []"
-    V_Gset_Array["org.cinnamon.desktop.media-handling automount-open"]="false"
-    V_Gset_Array["org.cinnamon.desktop.media-handling automount"]="true"
-    V_Gset_Array["org.cinnamon.desktop.media-handling autorun-never"]="true"
-    V_Gset_Array["org.cinnamon.desktop.peripherals.touchpad send-events"]="disabled-on-external-mouse"
-    V_Gset_Array["org.cinnamon.desktop.privacy remember-recent-files"]="false"
-    V_Gset_Array["org.cinnamon.desktop.privacy remember-recent-files"]="false"
-    V_Gset_Array["org.cinnamon.desktop.screensaver lock-enabled"]="false"
-    V_Gset_Array["org.cinnamon.desktop.wm.preferences action-scroll-titlebar"]="opacity"
-    V_Gset_Array["org.cinnamon favorite-apps"]="['mintinstall.desktop', 'cinnamon-settings.desktop', 'cubic.desktop', 'bleachbit-root.desktop', 'virtualbox.desktop']"
-    V_Gset_Array["org.cinnamon.muffin edge-tiling"]="false"
-    V_Gset_Array["org.cinnamon.settings-daemon.plugins.power button-power"]="blank"
-    V_Gset_Array["org.cinnamon.settings-daemon.plugins.power critical-battery-action"]="shutdown"
-    V_Gset_Array["org.cinnamon.settings-daemon.plugins.power idle-dim-ac"]="false"
-    V_Gset_Array["org.cinnamon.settings-daemon.plugins.power idle-dim-battery"]="false"
-    V_Gset_Array["org.cinnamon.settings-daemon.plugins.power lid-close-ac-action"]="nothing"
-    V_Gset_Array["org.cinnamon.settings-daemon.plugins.power lid-close-battery-action"]="nothing"
-    V_Gset_Array["org.cinnamon.settings-daemon.plugins.power lock-on-suspend"]="false"
-    V_Gset_Array["org.cinnamon.settings-daemon.plugins.power sleep-display-ac"]="1800"
-    V_Gset_Array["org.cinnamon.settings-daemon.plugins.power sleep-display-battery"]="300"
-    V_Gset_Array["org.cinnamon.settings-daemon.plugins.power sleep-inactive-ac-timeout"]="0"
-    V_Gset_Array["org.cinnamon.settings-daemon.plugins.power sleep-inactive-battery-timeout"]="0"
-    V_Gset_Array["org.cinnamon.theme name"]="Mint-Y-Dark-Aqua"
-    V_Gset_Array["org.cinnamon workspace-osd-visible"]="false"
-    V_Gset_Array["org.gnome.desktop.interface clock-format"]="12h"
-    V_Gset_Array["org.gnome.desktop.privacy remember-recent-files"]="false"
-    V_Gset_Array["org.gtk.Settings.FileChooser show-hidden"]="true"
-    V_Gset_Array["org.nemo.desktop computer-icon-visible"]="false"
-    V_Gset_Array["org.nemo.desktop home-icon-visible"]="false"
-    V_Gset_Array["org.nemo.desktop network-icon-visible"]="false"
-    V_Gset_Array["org.nemo.desktop trash-icon-visible"]="false"
-    V_Gset_Array["org.nemo.desktop volumes-visible"]="false"
-    V_Gset_Array["org.nemo.preferences detect-content"]="false"
-    V_Gset_Array["org.nemo.preferences enable-delete"]="true"
-    V_Gset_Array["org.nemo.preferences show-hidden-files"]="true"
-    V_Gset_Array["org.x.apps.portal color-scheme"]="prefer-dark"
-    V_Gset_Array["org.x.editor.plugins active-plugins"]="['time', 'sort', 'filebrowser', 'textsize', 'trailsave', 'modelines', 'docinfo', 'open-uri-context-menu', 'spell', 'joinlines']"
-    V_Gset_Array["org.x.editor.plugins.time custom-format"]='#%Y%m%d_%H%M_est_EJR'
-    V_Gset_Array["org.x.editor.plugins.time prompt-type"]="prompt-custom-format"
-    V_Gset_Array["org.x.editor.preferences.editor draw-whitespace-trailing"]="true"
-    V_Gset_Array["org.x.editor.preferences.editor draw-whitespace"]="true"
-    V_Gset_Array["org.x.editor.preferences.editor ensure-trailing-newline"]="false"
-    V_Gset_Array["org.x.editor.preferences.editor insert-spaces"]="true"
-    V_Gset_Array["org.x.editor.preferences.editor scheme"]="cobalt"
-    V_Gset_Array["org.x.editor.preferences.editor tabs-size"]="2"
-    V_Gset_Array["org.x.editor.preferences.editor wrap-mode"]="none"
-  ##### data end #########
-
-###############################################################################
-#`````````````````````````````````````````````````````````````````````````````#
+F_ConfPython()      { F_zzdd '====== PYTHON STUFF ==================='; pip3 install --upgrade yt-dlp; pip3 install mnemonic ecdsa pycryptodome pyperclip qrcode base58; }
+F_ConfDconf()       { F_zzdd '====== SYSTEM SETTINGS: DCONF ========='; dconf write /org/cinnamon/panels-enabled "['1:0:bottom']"; dconf write /org/cinnamon/panels-height "['1:27']"; dconf write /org/cinnamon/panel-zone-icon-sizes '[{"left":0,"center":0,"right":0,"panelId":1}]'; dconf write /org/cinnamon/enabled-applets "['panel1:left:0:menu@cinnamon.org','panel1:left:1:panel-launchers@cinnamon.org','panel1:left:2:window-list@cinnamon.org','panel1:right:0:workspace-switcher@cinnamon.org','panel1:right:1:systray@cinnamon.org','panel1:right:2:xapp-status@cinnamon.org','panel1:right:3:keyboard@cinnamon.org','panel1:right:4:notifications@cinnamon.org','panel1:right:5:printers@cinnamon.org','panel1:right:6:removable-drives@cinnamon.org','panel1:right:7:user@cinnamon.org','panel1:right:8:network@cinnamon.org','panel1:right:9:sound@cinnamon.org','panel1:right:10:power@cinnamon.org','panel1:right:11:calendar@cinnamon.org']"; }
+F_ConfFiles()       { F_zzdd '====== CONFIG FILES ==================='; sleep 2; echo '...........VARIABLES PLAIN...............'; local tswitcherSF="$HOME/a-me/config/switcher.json"; local tlauncherSF="$HOME/a-me/config/launchers.json"; local tswitcherDD="$HOME/.config/cinnamon/spices/workspace-switcher@cinnamon.org"; local tlauncherDD="$HOME/.config/cinnamon/spices/panel-launchers@cinnamon.org"; local tbleachbtP1="/root/.config/bleachbit"; local tbleachbtP2="$HOME/.config/bleachbit"; local tbleachbtS1="$HOME/a-me/config/root-bleachbit.ini"; local tbleachbtS2="$HOME/a-me/config/bleachbit.ini"; local tbleachbtD1="/root/.config/bleachbit/bleachbit.ini"; local tbleachbtD2="$HOME/.config/bleachbit/bleachbit.ini"
+  echo '......VARIABLES COMPUTED & CHECKED ......'; local tswitcherDF=$(find "$tswitcherDD" -type f -name '*.json'); wait $!
+  if [ -z "$tswitcherDF" ]; then echo 'NO FILE'; return 1; elif [ $(echo "$tswitcherDF" | wc -l) -gt 1 ]; then echo '2+ FILES'; return 1; fi
+  local tlauncherDF=$(find "$tlauncherDD" -type f -name '*.json'); wait $!
+  if [ -z "$tlauncherDF" ]; then echo 'NO FILE'; return 1; elif [ $(echo "$tlauncherDF" | wc -l) -gt 1 ]; then echo '2+ FILES'; return 1; fi
+  echo '#### WORKSPACE SWITCHER ####'; cp "$tswitcherSF" "$tswitcherDF" && echo '!! Panel Switcher Updated !!'
+  echo '#### PANEL LAUNCHERS ####'; cp "$tlauncherSF" "$tlauncherDF" && echo '!! Panel Launcher Updated !!'
+  echo '#### BLEACHBIT ####'; { sudo mkdir -p "$tbleachbtP1"; mkdir -p "$tbleachbtP2"; sudo cp "$tbleachbtS1" "$tbleachbtD1"
+  cp "$tbleachbtS2" "$tbleachbtD2"; } && echo '!! BleachBit UpDated !!'; }
+F_ConfNemoBooks()   { F_zzdd '====== LOADING BOOKMARKS FOR NEMO ====='; local t1="$HOME/.config/gtk-3.0/bookmarks"; local t2="$HOME/a-me/config/bookmark.txt"; sed "s/\$USER/$(whoami)/g" "$t2" > "$t1"; }
+F_ConfGsettings()   { F_zzff '====== GSETTINGS ==='; local t1; local t2; local LGS; local LGG; local LGR; local LD='>/dev/null'; for t1 in "${!V_Gset_Array[@]}"; do t2="${V_Gset_Array[$t1]}"; LGS="gsettings set $t1 \"$t2\" $LD"; LGG="gsettings get $t1"; LGR="gsettings range $t1"; echo -e "\e[36m\e[1m===========================================================\e[0m"; echo -e "\e[4m# Command To Run:\e[0m\e[3m"; echo "$LGS"; echo -e "\e[0m\e[4m# Current Settings:\e[0m\e[3m"; eval "$LGG"; echo -e "\e[0m\e[4m# Possible Settings:\e[0m\e[3m"; eval "$LGR"; echo -e "\e[0m...........................................................\e[33m\e[1m"; eval "$LGS"; echo -e "\e[0m"; sleep .5; done; echo -e "\e[5m\e[1m**** HIT ENTER ****\e[0m"; read junk; }
+F_ConfCinnReset()   { cinnamon --replace > /dev/null 2>&1 & disown; sleep 4; }
+F_ConfUnlock()      { F_zzdd '====== PERSONAL FILES UNLOCK ==========='; cd ~/a-me/; 7z x z-personal.7z; rm z-personal.7z; cd -; }
+F_ConfDisplayRez()  { F_zzdd '====== Resolution For Desktops ========='; local tkey; echo -n 'Do You Need 1366x768 Overrides? '; read -rsn1 tkey; echo; tkey=${tkey,,}; [ ! "$tkey" = "y" ] && return
+  echo '---- COPYING FILES FOR RESOLUTION AUTOSTART ----'; cp "$HOME/a-me/config/resolution.desktop" "$HOME/.config/autostart/resolution.desktop"; echo '---- FIXING RESOLUTION NOW ----'; xrandr --newmode "1368x768_60.00" 85.86 1368 1440 1584 1800 768 769 772 795 -HSync +Vsync; xrandr --addmode HDMI-1 "1368x768_60.00"; xrandr --addmode HDMI-2 "1368x768_60.00"; xrandr --output HDMI-1 --mode "1368x768_60.00" --pos 0x0; xrandr --output HDMI-2 --mode "1368x768_60.00" --pos 1368x0; }
+############    #####################    #################    #############    #################   ################   #############  ###############
+F_Menu_1_Ops()      { local choices=(); for i in "${V_Menu_1_Ops[@]}"; do choices+=("$i" "" on); done
+  local selected_items=$(whiptail --title "Choose Apps To UnInstall" --separate-output --checklist "Select the Apps to UnInstall" 0 0 0 "${choices[@]}" 3>&1 1>&2 2>&3)
+  if [ $? -eq 0 ]; then for i in $selected_items; do
+    echo -e "****************************************************************************************\n...Executing Function: $i..."
+   "$i" # A C T I O N
+  done; else echo "No items selected."; fi; }
+F_Menu_2_Ops()      { local choices=(); for i in "${V_Menu_2_Ops[@]}"; do choices+=("$i" "" on); done
+  local selected_items=$(whiptail --title "Choose Apps To UnInstall" --separate-output --checklist "Select the Apps to UnInstall" 0 0 0 "${choices[@]}" 3>&1 1>&2 2>&3)
+  if [ $? -eq 0 ]; then for i in $selected_items; do
+    echo -e "****************************************************************************************\n...Executing Function: $i..."
+    "$i" # A C T I O N
+  done; else echo "No items selected."; fi; }
+F_Menu_Ops()        { local choices=(); for i in "${V_Menu_Ops[@]}"; do choices+=("$i" "" on); done
+  local selected_items=$(whiptail --title "Choose Apps To UnInstall" --separate-output --checklist "Select the Apps to UnInstall" 0 0 0 "${choices[@]}" 3>&1 1>&2 2>&3)
+  if [ $? -eq 0 ]; then for i in $selected_items; do
+    echo -e "****************************************************************************************\n...Executing Function: $i..."
+    "$i" # A C T I O N
+  done; else echo "No items selected."; fi; }
+#==== MAIN MENU ===================================================================================
 mma:
 clear; echo '
 ------ EJR: MINT SETUP 21.3------
-1) Mint 21.3: Setup Items
-\) EXIT
+ 1 - Install Items    (Menu)
+ 2 - Install Items    (Checklist)
+ 3 - 1st Boot Configs (Menu)
+ 4 - 1st Boot Configs (Checklist)
+ 5 - All Items        (Checklist)
+ \ - EXIT
 '
 read -rsn1 inkey; echo; inkey=${inkey,,}; clear; case "$inkey" in
-'1') F_jumpto mma1;;
-'\') exit 0       ;;
-  *) F_jumpto mma ;;
-esac
-F_zzff
-F_jumpto mma
-###############################################################################
-#`````````````````````````````````````````````````````````````````````````````#
+'1') F_jumpto mma1  ;;
+'2') F_Menu_1_Ops   ;;
+'3') F_jumpto mma2  ;;
+'4') F_Menu_2_Ops   ;;
+'5') F_Menu_Ops     ;;
+'\') exit 0         ;;
+  *) F_jumpto mma   ;;
+esac; F_crab; F_jumpto mma
+#==== MENU 1 ======================================================================================
 mma1:
 clear; echo '
-== Pre Install (cubic) ====|===============================
-1)  APT: UPDATE            |     7)  DEB: CHROME (wget)
-2)  APT: UNINSTALLS (list) |     8)  FPK: INSTALL (list)
-3)  APT: UPGRADE           |     9)  FIX: PDF ISSUE
-4)  APT: INSTALL (list)    |     0)  SET: BLACK WALLPAPER
-5)  PPA: CUBIC             |     -)  APT: UPGRADE & CLEAN
-6)  PPA: VIDCUTTER         |
-
-
-== After Install ==========|==== OPTIONAL =================
-Q)  Python: Installs       |     Y)  RESET CINNAMON (Optional)
-W)  Set: DCONF             |     U)  UnLock: 7z (optional / could just sync files)
-E)  Set: FILES             |     I)  FIX RESOLUTION 1366x768 (Optional For Desktops)
-R)  Set: Nemo Bookmarks
-T)  Set: Gset
-
-\) - EXIT
+== Install Items ================================
+ 1 - UPDATE (apt)
+ 2 - UNINSTALLS (apt)
+ 3 - UPGRADES (apt)
+ 4 - INSTALLS (apt)
+ 5 - PPAs (apt)
+ 6 - DEBs (Downloads)
+ 7 - DEBs (local)
+ 8 - Flatpaks
+ 9 - MOD: FIX PDF ISSUE
+ 0 - MOD: BLACK WALLPAPER
+ - - UPGRADE & CLEAN (apt)
+ \ - EXIT
 '
 read -rsn1 inkey; echo; inkey=${inkey,,}; clear; case "$inkey" in
-'1') F_AptUpdate      ;;
-'2') F_Uninstalls     ;;
-'3') F_AptUpgrade     ;;
-'4') F_InListAPT      ;;
-'5') F_InCubicPPA     ;;
-'6') F_InVidcutterPPA ;;
-#
-'7') F_InChromeDeb    ;;
-'8') F_InListFPK      ;;
-'9') F_FixPDF         ;;
-'0') F_BlackBg        ;;
-'-') F_AptUpClean     ;;
-#
-'q') F_ConfPython     ;;
-'w') F_ConfDconf      ;;
-'e') F_ConfFiles      ;;
-'r') F_ConfNemoBooks  ;;
-'t') F_ConfGsettings  ;;
-#
-'y') F_ConfCinnReset  ;;
-'u') F_ConfUnlock     ;;
-'i') F_ConfDisplayRez ;;
-#
+'1') F_Update;;
+'2') F_UnApt;;
+'3') F_Upgrade;;
+'4') F_InApt;;
+'5') F_InAptPPA;;
+'6') F_InDebDL;;
+'7') F_InDeb;;
+'8') F_InFpak;;
+'9') F_ModFixPDF;;
+'0') F_ModBlackBg;;
+'-') F_Clean;;
 '\') F_jumpto mma     ;;
   *) F_jumpto mma1    ;;
-esac
-F_zzff
-F_jumpto mma1
-###############################################################################
-#`````````````````````````````````````````````````````````````````````````````#
+esac; F_crab; F_jumpto mma1
+#==== MENU 2 ======================================================================================
+mma2:
+clear; echo '
+== 1st Boot Configs =============================
+ 1 - Python: Installs
+ 2 - Set: DCONF
+ 3 - Set: FILES
+ 4 - Set: Nemo Bookmarks
+ 5 - Set: Gset
+ 6 - RESET CINNAMON (Optional)
+ 7 - UnLock: 7z (optional / could just sync files)
+ 8 - FIX RESOLUTION 1366x768 (Optional For Desktops)
+ 9 - Offline Pip3 Tools
+ \ - EXIT
+'
+read -rsn1 inkey; echo; inkey=${inkey,,}; clear; case "$inkey" in
+'1') F_ConfPython     ;;
+'2') F_ConfDconf      ;;
+'3') F_ConfFiles      ;;
+'4') F_ConfNemoBooks  ;;
+'5') F_ConfGsettings  ;;
+'6') F_ConfCinnReset  ;;
+'7') F_ConfUnlock     ;;
+'8') F_ConfDisplayRez ;;
+'9') F_pipzin         ;;
+'\') F_jumpto mma     ;;
+  *) F_jumpto mma2    ;;
+esac; F_crab; F_jumpto mma2
+###################
