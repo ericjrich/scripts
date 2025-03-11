@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+#20250311_1534_est_EJR
+#EJR Random Strings
+
+#=== Bash Functions ======================================================================================
+jumpto() { local LV1=$1; local LV2=$(sed -n "/$LV1:/{:a;n;p;ba};" "$0" | grep -v ':$'); sleep .1; eval "$LV2"; exit; }
+crap() { sleep .2; read -n 1 -p '*ANY-KEY*'; echo; }
+generate_string() { tr -dc "$ctype" </dev/urandom | head -c "$slen"; }
+
+#===== Variables ==============================================
+ctype='a-z'  # Default character set
+slen=64      # Default string length
+samt=10      # Default number of strings
+
+#=== Main Menu ========================================================================================
+mma:
+clear
+echo -e "
+--- Current Settings ----
+   Characters: $ctype
+String Length: $slen
+String Amount: $samt
+
+================  M a i n  M e n u  ============================
+1) Set Type
+2) Set Length
+3) Set Amount
+
+0) Run It
+\) EXIT"
+read -rsn1 InKey
+echo
+InKey=${InKey,,}
+clear
+case "$InKey" in
+    '1')  jumpto mma1;;
+    '2')  jumpto mma2;;
+    '3')  jumpto mma3;;
+    '0')  jumpto mma0;;
+    '\') exit 0;;
+    *)    jumpto mma;;
+esac
+jumpto mma
+
+#=== Character Set Selection ============================================================================
+mma1:
+echo "===== Choose Char Set ======
+1) aaaa    (Lowercase Letters)
+2) AaAa    (Upper & Lowercase Letters)
+3) a1a1    (Lowercase & Numbers)
+4) A1A1    (Uppercase & Numbers)
+5) a1A1    (Upper, Lower, & Numbers)
+\) Back"
+read -rsn1 InKey
+echo
+InKey=${InKey,,}
+clear
+case "$InKey" in
+    '1')  ctype="a-z";;
+    '2')  ctype="a-zA-Z";;
+    '3')  ctype="a-z0-9";;
+    '4')  ctype="A-Z0-9";;
+    '5')  ctype="a-zA-Z0-9";;
+    '\') jumpto mma;;
+    *)    jumpto mma1;;
+esac
+jumpto mma
+
+#=== Set String Length ==================================================================================
+mma2:
+echo "Enter the desired string length:"
+read -r slen
+jumpto mma
+
+#=== Set Number of Strings ==============================================================================
+mma3:
+echo "Enter the number of strings to generate:"
+read -r samt
+jumpto mma
+
+#=== Generate Strings ===================================================================================
+mma0:
+clear
+echo "Generating $samt strings with $slen characters each..."
+for ((i = 1; i <= samt; i++)); do
+    generate_string
+    echo
+done
+crap
+jumpto mma
